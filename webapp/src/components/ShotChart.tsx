@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { trackmanApi, type Activity, type Scorecard, type ActivityReport, type StrokeGroup, type Measurement } from '../api/trackman';
 import { generateShotSummary, generateKeyInsights } from '../utils/shotAnalysis';
-import { ShotVisualizationPanel } from './ShotVisualizations';
+import { ShotVisualizationPanel, MomentumChart } from './ShotVisualizations';
 
 interface ShotChartProps {
   session: Activity;
@@ -137,6 +137,9 @@ function ScorecardView({ scorecard }: { scorecard: Scorecard }) {
           </span>
         </div>
       </div>
+
+      {/* Momentum Chart - Round Narrative */}
+      <MomentumChart holes={scorecard.holes} />
 
       {/* Score Distribution */}
       <div className="score-distribution">
@@ -317,7 +320,7 @@ function ScorecardView({ scorecard }: { scorecard: Scorecard }) {
 
 // Shot Analysis View Component
 function ShotAnalysisView({ report }: { report: ActivityReport }) {
-  const [selectedClubs, setSelectedClubs] = useState<Set<string>>(new Set());
+  const [selectedClub, setSelectedClub] = useState<string | null>(null);
 
   // Get unique clubs from the report
   const availableClubs = useMemo(() => {
@@ -325,12 +328,12 @@ function ShotAnalysisView({ report }: { report: ActivityReport }) {
     return report.StrokeGroups.map(g => g.Club);
   }, [report.StrokeGroups]);
 
-  // Initialize with all clubs selected
+  // Initialize with first club selected
   useEffect(() => {
-    if (availableClubs.length > 0 && selectedClubs.size === 0) {
-      setSelectedClubs(new Set(availableClubs));
+    if (availableClubs.length > 0 && selectedClub === null) {
+      setSelectedClub(availableClubs[0]);
     }
-  }, [availableClubs, selectedClubs.size]);
+  }, [availableClubs, selectedClub]);
 
   if (!report.StrokeGroups || report.StrokeGroups.length === 0) {
     return (
@@ -340,48 +343,26 @@ function ShotAnalysisView({ report }: { report: ActivityReport }) {
     );
   }
 
-  const toggleClub = (club: string) => {
-    setSelectedClubs(prev => {
-      const next = new Set(prev);
-      if (next.has(club)) {
-        next.delete(club);
-      } else {
-        next.add(club);
-      }
-      return next;
-    });
-  };
-
-  const selectAll = () => setSelectedClubs(new Set(availableClubs));
-  const selectNone = () => setSelectedClubs(new Set());
-
-  const filteredGroups = report.StrokeGroups.filter(g => selectedClubs.has(g.Club));
-
-  // Combine all strokes from filtered groups for aggregate visualizations
-  const allFilteredStrokes = filteredGroups.flatMap(g => g.Strokes || []);
+  const selectedGroup = report.StrokeGroups.find(g => g.Club === selectedClub);
 
   return (
     <div className="shot-analysis-view">
-      {/* Club Filter */}
+      {/* Club Selector */}
       {availableClubs.length > 1 && (
         <div className="club-filter">
           <div className="filter-header">
-            <span className="filter-label">Filter by Club</span>
-            <div className="filter-actions">
-              <button onClick={selectAll} className="filter-action-btn">All</button>
-              <button onClick={selectNone} className="filter-action-btn">None</button>
-            </div>
+            <span className="filter-label">Select Club</span>
           </div>
           <div className="club-chips">
             {availableClubs.map(club => {
               const group = report.StrokeGroups?.find(g => g.Club === club);
               const shotCount = group?.Strokes?.length || 0;
-              const isSelected = selectedClubs.has(club);
+              const isSelected = selectedClub === club;
               return (
                 <button
                   key={club}
                   className={`club-chip ${isSelected ? 'selected' : ''}`}
-                  onClick={() => toggleClub(club)}
+                  onClick={() => setSelectedClub(club)}
                 >
                   <span className="chip-name">{formatClubName(club)}</span>
                   <span className="chip-count">{shotCount}</span>
@@ -392,23 +373,9 @@ function ShotAnalysisView({ report }: { report: ActivityReport }) {
         </div>
       )}
 
-      {/* Aggregate Visualizations (when multiple clubs selected) */}
-      {filteredGroups.length > 1 && allFilteredStrokes.length >= 2 && (
-        <div className="aggregate-section">
-          <h3>All Selected Clubs ({allFilteredStrokes.length} shots)</h3>
-          <ShotVisualizationPanel strokes={allFilteredStrokes} />
-        </div>
-      )}
-
-      {/* Individual Club Groups */}
-      {filteredGroups.map((group) => (
-        <ClubGroupView key={`${group.Club}-${group.Id}`} group={group} />
-      ))}
-
-      {filteredGroups.length === 0 && (
-        <div className="empty-filter-state">
-          <p>No clubs selected. Select at least one club to view data.</p>
-        </div>
+      {/* Selected Club Data */}
+      {selectedGroup && (
+        <ClubGroupView key={`${selectedGroup.Club}-${selectedGroup.Id}`} group={selectedGroup} />
       )}
     </div>
   );
@@ -475,15 +442,15 @@ function ClubGroupView({ group }: { group: StrokeGroup }) {
         </tbody>
         <tfoot>
           <tr>
-            <td>Avg</td>
-            <td>{avgMeasurement(strokes, 'Carry')}</td>
-            <td>{avgMeasurement(strokes, 'Total')}</td>
-            <td>{avgMeasurement(strokes, 'BallSpeed')}</td>
-            <td>{avgMeasurement(strokes, 'ClubSpeed')}</td>
-            <td>{avgMeasurement(strokes, 'LaunchAngle')}°</td>
-            <td>{avgMeasurementInt(strokes, 'SpinRate')}</td>
-            <td>{avgMeasurementInt(strokes, 'MaxHeight')}</td>
-            <td>{avgMeasurement(strokes, 'CarrySide')}</td>
+            <td>Med</td>
+            <td>{medianMeasurement(strokes, 'Carry')}</td>
+            <td>{medianMeasurement(strokes, 'Total')}</td>
+            <td>{medianMeasurement(strokes, 'BallSpeed')}</td>
+            <td>{medianMeasurement(strokes, 'ClubSpeed')}</td>
+            <td>{medianMeasurement(strokes, 'LaunchAngle')}°</td>
+            <td>{medianMeasurementInt(strokes, 'SpinRate')}</td>
+            <td>{medianMeasurementInt(strokes, 'MaxHeight')}</td>
+            <td>{medianMeasurement(strokes, 'CarrySide')}</td>
           </tr>
         </tfoot>
       </table>
@@ -491,20 +458,27 @@ function ClubGroupView({ group }: { group: StrokeGroup }) {
   );
 }
 
-function avgMeasurement(strokes: { Measurement?: Measurement; NormalizedMeasurement?: Measurement }[], key: keyof Measurement): string {
-  const values = strokes
-    .map(s => (s.Measurement || s.NormalizedMeasurement)?.[key])
-    .filter((v): v is number => typeof v === 'number');
-  if (values.length === 0) return '-';
-  return (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1);
+function calculateMedian(values: number[]): number {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
-function avgMeasurementInt(strokes: { Measurement?: Measurement; NormalizedMeasurement?: Measurement }[], key: keyof Measurement): string {
+function medianMeasurement(strokes: { Measurement?: Measurement; NormalizedMeasurement?: Measurement }[], key: keyof Measurement): string {
   const values = strokes
     .map(s => (s.Measurement || s.NormalizedMeasurement)?.[key])
     .filter((v): v is number => typeof v === 'number');
   if (values.length === 0) return '-';
-  return Math.round(values.reduce((a, b) => a + b, 0) / values.length).toString();
+  return calculateMedian(values).toFixed(1);
+}
+
+function medianMeasurementInt(strokes: { Measurement?: Measurement; NormalizedMeasurement?: Measurement }[], key: keyof Measurement): string {
+  const values = strokes
+    .map(s => (s.Measurement || s.NormalizedMeasurement)?.[key])
+    .filter((v): v is number => typeof v === 'number');
+  if (values.length === 0) return '-';
+  return Math.round(calculateMedian(values)).toString();
 }
 
 function getSideClass(side?: number): string {

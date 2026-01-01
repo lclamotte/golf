@@ -3,7 +3,7 @@
 import type { Stroke, Measurement } from '../api/trackman';
 
 interface Stats {
-  avg: number;
+  median: number;
   min: number;
   max: number;
   stdDev: number;
@@ -38,18 +38,25 @@ interface ClubAnalysis {
   landingAngleStats?: Stats;
 }
 
+function calculateMedian(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
 function calculateStats(values: number[]): Stats | undefined {
   if (values.length === 0) return undefined;
 
-  const avg = values.reduce((a, b) => a + b, 0) / values.length;
+  const median = calculateMedian(values);
   const min = Math.min(...values);
   const max = Math.max(...values);
 
-  const squaredDiffs = values.map(v => Math.pow(v - avg, 2));
-  const avgSquaredDiff = squaredDiffs.reduce((a, b) => a + b, 0) / values.length;
-  const stdDev = Math.sqrt(avgSquaredDiff);
+  // Use median for stdDev calculation (median absolute deviation approach)
+  const squaredDiffs = values.map(v => Math.pow(v - median, 2));
+  const meanSquaredDiff = squaredDiffs.reduce((a, b) => a + b, 0) / values.length;
+  const stdDev = Math.sqrt(meanSquaredDiff);
 
-  return { avg, min, max, stdDev, values };
+  return { median, min, max, stdDev, values };
 }
 
 function extractValues(strokes: Stroke[], key: keyof Measurement): number[] {
@@ -85,8 +92,8 @@ function formatNum(n: number, decimals = 1): string {
   return n.toFixed(decimals);
 }
 
-function getConsistencyRating(stdDev: number, avg: number): 'excellent' | 'good' | 'moderate' | 'inconsistent' {
-  const cv = (stdDev / Math.abs(avg)) * 100; // Coefficient of variation
+function getConsistencyRating(stdDev: number, median: number): 'excellent' | 'good' | 'moderate' | 'inconsistent' {
+  const cv = (stdDev / Math.abs(median)) * 100; // Coefficient of variation
   if (cv < 3) return 'excellent';
   if (cv < 6) return 'good';
   if (cv < 10) return 'moderate';
@@ -100,19 +107,19 @@ function getDispersionRating(stdDev: number): 'tight' | 'good' | 'moderate' | 'w
   return 'wide';
 }
 
-function getPathTendency(avg: number): string {
-  if (avg < -3) return 'strongly in-to-out';
-  if (avg < -1) return 'slightly in-to-out';
-  if (avg > 3) return 'strongly out-to-in';
-  if (avg > 1) return 'slightly out-to-in';
+function getPathTendency(median: number): string {
+  if (median < -3) return 'strongly in-to-out';
+  if (median < -1) return 'slightly in-to-out';
+  if (median > 3) return 'strongly out-to-in';
+  if (median > 1) return 'slightly out-to-in';
   return 'neutral';
 }
 
-function getFaceTendency(avg: number): string {
-  if (avg < -3) return 'significantly closed';
-  if (avg < -1) return 'slightly closed';
-  if (avg > 3) return 'significantly open';
-  if (avg > 1) return 'slightly open';
+function getFaceTendency(median: number): string {
+  if (median < -3) return 'significantly closed';
+  if (median < -1) return 'slightly closed';
+  if (median > 3) return 'significantly open';
+  if (median > 1) return 'slightly open';
   return 'square';
 }
 
@@ -193,28 +200,28 @@ export function generateShotSummary(strokes: Stroke[], clubName: string): string
 
   // Distance summary
   if (analysis.carryStats) {
-    const distConsistency = getConsistencyRating(analysis.carryStats.stdDev, analysis.carryStats.avg);
-    parts.push(`Averaging ${formatNum(analysis.carryStats.avg)} yards carry with ${distConsistency} consistency (${formatNum(analysis.carryStats.min)}–${formatNum(analysis.carryStats.max)} range).`);
+    const distConsistency = getConsistencyRating(analysis.carryStats.stdDev, analysis.carryStats.median);
+    parts.push(`Median carry of ${formatNum(analysis.carryStats.median)} yards with ${distConsistency} consistency (${formatNum(analysis.carryStats.min)}–${formatNum(analysis.carryStats.max)} range).`);
   }
 
   // Dispersion analysis
   if (analysis.carrySideStats) {
     const dispersion = getDispersionRating(analysis.carrySideStats.stdDev);
-    const avgSide = analysis.carrySideStats.avg;
+    const medianSide = analysis.carrySideStats.median;
     let tendency = '';
-    if (Math.abs(avgSide) > 5) {
-      tendency = avgSide < 0 ? ` with a tendency left` : ` with a tendency right`;
+    if (Math.abs(medianSide) > 5) {
+      tendency = medianSide < 0 ? ` with a tendency left` : ` with a tendency right`;
     }
     parts.push(`Dispersion is ${dispersion} (±${formatNum(analysis.carrySideStats.stdDev)} yards)${tendency}.`);
   }
 
   // Swing path and face analysis
   if (analysis.clubPathStats && analysis.faceAngleStats && analysis.faceToPathStats) {
-    const pathTendency = getPathTendency(analysis.clubPathStats.avg);
-    const faceTendency = getFaceTendency(analysis.faceAngleStats.avg);
-    const shotShape = getShotShape(analysis.clubPathStats.avg, analysis.faceToPathStats.avg);
+    const pathTendency = getPathTendency(analysis.clubPathStats.median);
+    const faceTendency = getFaceTendency(analysis.faceAngleStats.median);
+    const shotShape = getShotShape(analysis.clubPathStats.median, analysis.faceToPathStats.median);
 
-    parts.push(`Swing path is ${pathTendency} (${formatNum(analysis.clubPathStats.avg)}°) with a ${faceTendency} face (${formatNum(analysis.faceAngleStats.avg)}°), producing a ${shotShape}.`);
+    parts.push(`Swing path is ${pathTendency} (${formatNum(analysis.clubPathStats.median)}°) with a ${faceTendency} face (${formatNum(analysis.faceAngleStats.median)}°), producing a ${shotShape}.`);
 
     // Path consistency
     if (analysis.clubPathStats.stdDev > 3) {
@@ -224,34 +231,34 @@ export function generateShotSummary(strokes: Stroke[], clubName: string): string
 
   // Speed and efficiency
   if (analysis.clubSpeedStats && analysis.smashFactorStats) {
-    const speedConsistency = getConsistencyRating(analysis.clubSpeedStats.stdDev, analysis.clubSpeedStats.avg);
-    const smashAssessment = getSmashFactorAssessment(analysis.smashFactorStats.avg, clubName);
+    const speedConsistency = getConsistencyRating(analysis.clubSpeedStats.stdDev, analysis.clubSpeedStats.median);
+    const smashAssessment = getSmashFactorAssessment(analysis.smashFactorStats.median, clubName);
 
-    parts.push(`Club speed averaging ${formatNum(analysis.clubSpeedStats.avg)} mph (${speedConsistency} consistency). Smash factor of ${formatNum(analysis.smashFactorStats.avg, 2)} is ${smashAssessment}.`);
+    parts.push(`Median club speed ${formatNum(analysis.clubSpeedStats.median)} mph (${speedConsistency} consistency). Smash factor of ${formatNum(analysis.smashFactorStats.median, 2)} is ${smashAssessment}.`);
   }
 
   // Launch conditions
   if (analysis.launchAngleStats) {
-    const launchAssessment = getLaunchAssessment(analysis.launchAngleStats.avg, clubName);
-    parts.push(`Launch angle averaging ${formatNum(analysis.launchAngleStats.avg)}° (${launchAssessment}).`);
+    const launchAssessment = getLaunchAssessment(analysis.launchAngleStats.median, clubName);
+    parts.push(`Median launch angle ${formatNum(analysis.launchAngleStats.median)}° (${launchAssessment}).`);
   }
 
   // Spin analysis
   if (analysis.spinRateStats) {
-    const spinAssessment = getSpinAssessment(analysis.spinRateStats.avg, clubName);
-    const spinConsistency = getConsistencyRating(analysis.spinRateStats.stdDev, analysis.spinRateStats.avg);
-    parts.push(`Spin rate averaging ${formatNum(analysis.spinRateStats.avg, 0)} rpm—${spinAssessment}. Spin consistency is ${spinConsistency}.`);
+    const spinAssessment = getSpinAssessment(analysis.spinRateStats.median, clubName);
+    const spinConsistency = getConsistencyRating(analysis.spinRateStats.stdDev, analysis.spinRateStats.median);
+    parts.push(`Median spin rate ${formatNum(analysis.spinRateStats.median, 0)} rpm—${spinAssessment}. Spin consistency is ${spinConsistency}.`);
   }
 
   // Spin axis (affects curve)
-  if (analysis.spinAxisStats && Math.abs(analysis.spinAxisStats.avg) > 5) {
-    const tilt = analysis.spinAxisStats.avg < 0 ? 'left (draw spin)' : 'right (fade spin)';
-    parts.push(`Spin axis tilted ${formatNum(Math.abs(analysis.spinAxisStats.avg))}° ${tilt}.`);
+  if (analysis.spinAxisStats && Math.abs(analysis.spinAxisStats.median) > 5) {
+    const tilt = analysis.spinAxisStats.median < 0 ? 'left (draw spin)' : 'right (fade spin)';
+    parts.push(`Spin axis tilted ${formatNum(Math.abs(analysis.spinAxisStats.median))}° ${tilt}.`);
   }
 
   // Attack angle (important for driver)
   if (analysis.attackAngleStats && clubName.toLowerCase().includes('driver')) {
-    const attack = analysis.attackAngleStats.avg;
+    const attack = analysis.attackAngleStats.median;
     let attackNote = '';
     if (attack < -2) {
       attackNote = 'hitting down too much—try teeing higher or ball forward';
@@ -267,17 +274,17 @@ export function generateShotSummary(strokes: Stroke[], clubName: string): string
 
   // Overall consistency score
   const consistencyScores: number[] = [];
-  if (analysis.carryStats) consistencyScores.push(analysis.carryStats.stdDev / analysis.carryStats.avg);
+  if (analysis.carryStats) consistencyScores.push(analysis.carryStats.stdDev / analysis.carryStats.median);
   if (analysis.carrySideStats) consistencyScores.push(analysis.carrySideStats.stdDev / 20); // Normalize
-  if (analysis.clubSpeedStats) consistencyScores.push(analysis.clubSpeedStats.stdDev / analysis.clubSpeedStats.avg);
-  if (analysis.spinRateStats) consistencyScores.push(analysis.spinRateStats.stdDev / analysis.spinRateStats.avg);
+  if (analysis.clubSpeedStats) consistencyScores.push(analysis.clubSpeedStats.stdDev / analysis.clubSpeedStats.median);
+  if (analysis.spinRateStats) consistencyScores.push(analysis.spinRateStats.stdDev / analysis.spinRateStats.median);
 
   if (consistencyScores.length >= 3) {
-    const avgCV = consistencyScores.reduce((a, b) => a + b, 0) / consistencyScores.length;
+    const meanCV = consistencyScores.reduce((a, b) => a + b, 0) / consistencyScores.length;
     let overallConsistency: string;
-    if (avgCV < 0.03) overallConsistency = 'Excellent';
-    else if (avgCV < 0.06) overallConsistency = 'Good';
-    else if (avgCV < 0.10) overallConsistency = 'Moderate';
+    if (meanCV < 0.03) overallConsistency = 'Excellent';
+    else if (meanCV < 0.06) overallConsistency = 'Good';
+    else if (meanCV < 0.10) overallConsistency = 'Moderate';
     else overallConsistency = 'Work needed on';
 
     parts.push(`${overallConsistency} overall shot-to-shot repeatability.`);
@@ -294,7 +301,7 @@ export function generateKeyInsights(strokes: Stroke[], clubName: string): string
   if (analysis.shotCount < 3) return [];
 
   // Highlight strengths
-  if (analysis.smashFactorStats && analysis.smashFactorStats.avg >= 1.48) {
+  if (analysis.smashFactorStats && analysis.smashFactorStats.median >= 1.48) {
     insights.push('Strong ball striking efficiency');
   }
 
@@ -302,22 +309,22 @@ export function generateKeyInsights(strokes: Stroke[], clubName: string): string
     insights.push('Tight lateral dispersion');
   }
 
-  if (analysis.clubSpeedStats && analysis.clubSpeedStats.stdDev / analysis.clubSpeedStats.avg < 0.03) {
+  if (analysis.clubSpeedStats && analysis.clubSpeedStats.stdDev / analysis.clubSpeedStats.median < 0.03) {
     insights.push('Very consistent swing speed');
   }
 
   // Highlight areas to work on
-  if (analysis.faceToPathStats && Math.abs(analysis.faceToPathStats.avg) > 4) {
-    const issue = analysis.faceToPathStats.avg > 0 ? 'Face open to path (slice tendency)' : 'Face closed to path (hook tendency)';
+  if (analysis.faceToPathStats && Math.abs(analysis.faceToPathStats.median) > 4) {
+    const issue = analysis.faceToPathStats.median > 0 ? 'Face open to path (slice tendency)' : 'Face closed to path (hook tendency)';
     insights.push(issue);
   }
 
-  if (analysis.carrySideStats && Math.abs(analysis.carrySideStats.avg) > 10) {
-    const direction = analysis.carrySideStats.avg < 0 ? 'left' : 'right';
+  if (analysis.carrySideStats && Math.abs(analysis.carrySideStats.median) > 10) {
+    const direction = analysis.carrySideStats.median < 0 ? 'left' : 'right';
     insights.push(`Consistent miss ${direction}—check alignment`);
   }
 
-  if (analysis.spinRateStats && clubName.toLowerCase().includes('driver') && analysis.spinRateStats.avg > 3000) {
+  if (analysis.spinRateStats && clubName.toLowerCase().includes('driver') && analysis.spinRateStats.median > 3000) {
     insights.push('High driver spin—losing distance');
   }
 

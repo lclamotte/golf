@@ -68,15 +68,16 @@ export function AuthStatus({ auth }: AuthStatusProps) {
   return (
     <div className="auth-status connected">
       <div className="status-indicator" />
-      <div className="status-content">
-        <span>Connected to Trackman</span>
-        {auth.capturedAt && (
-          <p className="status-time">Token captured {formatTimeAgo(auth.capturedAt)}</p>
-        )}
-        <button onClick={auth.refresh} className="refresh-btn">
-          Refresh
-        </button>
-      </div>
+      <span className="status-label">Connected</span>
+      {auth.capturedAt && (
+        <span className="status-time">{formatTimeAgo(auth.capturedAt)}</span>
+      )}
+      <button onClick={auth.refresh} className="refresh-icon-btn" title="Refresh token">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+          <path d="M21 3v5h-5" />
+        </svg>
+      </button>
     </div>
   );
 }

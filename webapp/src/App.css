@@ -15,16 +15,16 @@ header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-lg) var(--space-2xl);
+  padding: var(--space-sm) var(--space-2xl);
   background: var(--green-800);
-  border-bottom: 4px solid var(--yellow-500);
+  border-bottom: 3px solid var(--yellow-500);
   position: sticky;
   top: 0;
   z-index: 100;
 }
 
 header h1 {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--white);
@@ -33,11 +33,11 @@ header h1 {
 header h1::after {
   content: '';
   display: inline-block;
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   background: var(--yellow-500);
   border-radius: 50%;
-  margin-left: 8px;
+  margin-left: 6px;
   vertical-align: middle;
 }
 
@@ -53,17 +53,17 @@ main {
 .auth-status {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
+  gap: var(--space-xs);
+  padding: 6px 10px;
   border-radius: var(--radius-xl);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   transition: all var(--transition-base);
 }
 
 .auth-status .status-indicator {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   animation: pulse 2s infinite;
 }
@@ -85,11 +85,49 @@ main {
 .auth-status.connected {
   background: var(--yellow-500);
   color: var(--green-900);
+  gap: 6px;
 }
 
 .auth-status.connected .status-indicator {
   background: var(--green-800);
-  box-shadow: 0 0 0 3px rgba(0, 103, 71, 0.3);
+  box-shadow: 0 0 0 2px rgba(0, 103, 71, 0.3);
+}
+
+.auth-status.connected .status-label {
+  font-weight: 600;
+}
+
+.auth-status.connected .status-time {
+  font-size: 0.75rem;
+  opacity: 0.7;
+  font-weight: 400;
+}
+
+.auth-status.connected .status-time::before {
+  content: '·';
+  margin-right: 6px;
+}
+
+.refresh-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(0, 103, 71, 0.15);
+  color: var(--green-800);
+  margin-left: 2px;
+  transition: all var(--transition-fast);
+}
+
+.refresh-icon-btn:hover {
+  background: rgba(0, 103, 71, 0.25);
+  transform: rotate(45deg);
+}
+
+.refresh-icon-btn:active {
+  transform: rotate(180deg);
 }
 
 .auth-status.warning {
@@ -179,7 +217,7 @@ main {
   box-shadow: var(--shadow-lg);
   overflow: hidden;
   position: sticky;
-  top: calc(80px + var(--space-xl));
+  top: calc(52px + var(--space-xl));
 }
 
 /* Main Content */
@@ -216,7 +254,10 @@ main {
 }
 
 .session-item {
-  padding: var(--space-md) var(--space-md);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -234,25 +275,39 @@ main {
   border-left-width: 4px;
 }
 
+.session-item .activity-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.session-content {
+  flex: 1;
+  min-width: 0;
+}
+
 .session-name {
   font-weight: 500;
   color: var(--gray-900);
-  margin-bottom: 4px;
-  font-size: 0.9375rem;
+  margin-bottom: 2px;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .session-meta {
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   color: var(--gray-500);
   display: flex;
-  gap: var(--space-md);
+  gap: var(--space-sm);
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .session-meta span {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 }
 
 .session-list.loading,
@@ -1082,9 +1137,6 @@ main {
 }
 
 .filter-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   margin-bottom: var(--space-md);
 }
 
@@ -1094,26 +1146,6 @@ main {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--gray-500);
-}
-
-.filter-actions {
-  display: flex;
-  gap: var(--space-xs);
-}
-
-.filter-action-btn {
-  padding: 4px 10px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--gray-600);
-  background: var(--gray-100);
-  border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
-}
-
-.filter-action-btn:hover {
-  background: var(--yellow-200);
-  color: var(--green-900);
 }
 
 .club-chips {
@@ -1170,20 +1202,6 @@ main {
 .club-chip.selected .chip-count {
   background: var(--green-800);
   color: var(--yellow-500);
-}
-
-/* Aggregate Section */
-.aggregate-section {
-  margin-bottom: var(--space-2xl);
-  padding-bottom: var(--space-xl);
-  border-bottom: 2px solid var(--gray-100);
-}
-
-.aggregate-section h3 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--gray-700);
-  margin-bottom: var(--space-lg);
 }
 
 /* Empty Filter State */
@@ -1436,6 +1454,42 @@ main {
   font-weight: 600;
 }
 
+/* Momentum Chart specific */
+.momentum-chart {
+  grid-column: 1 / -1;
+  margin-bottom: var(--space-lg);
+}
+
+.momentum-container {
+  max-width: 100%;
+}
+
+.momentum-svg {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.momentum-legend {
+  flex-wrap: wrap;
+}
+
+.momentum-legend .birdie-dot {
+  background: var(--green-500);
+}
+
+.momentum-legend .par-dot {
+  background: var(--gray-400);
+}
+
+.momentum-legend .bogey-dot {
+  background: var(--yellow-500);
+}
+
+.momentum-legend .double-dot {
+  background: var(--red);
+}
+
 /* Responsive adjustments */
 @media (max-width: 600px) {
   .viz-grid {
@@ -1451,5 +1505,9 @@ main {
   .chart-tooltip {
     font-size: 0.75rem;
     min-width: 140px;
+  }
+
+  .momentum-svg {
+    max-width: 100%;
   }
 }
