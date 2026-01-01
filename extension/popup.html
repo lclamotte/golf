@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      width: 280px;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      color: #1a1a1a;
+    }
+
+    h1 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #0f172a;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+
+    .status.connected {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .status.disconnected {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .status.connected .status-dot {
+      background: #22c55e;
+    }
+
+    .status.disconnected .status-dot {
+      background: #f59e0b;
+    }
+
+    .status-text {
+      flex: 1;
+    }
+
+    .status-time {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      margin-bottom: 8px;
+      transition: background 0.15s;
+    }
+
+    .btn-primary {
+      background: #2563eb;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #1d4ed8;
+    }
+
+    .btn-secondary {
+      background: #f1f5f9;
+      color: #475569;
+    }
+
+    .btn-secondary:hover {
+      background: #e2e8f0;
+    }
+
+    .extension-id {
+      margin-top: 12px;
+      padding: 8px;
+      background: #f8fafc;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #64748b;
+      word-break: break-all;
+    }
+
+    .extension-id-label {
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Trackman Data Sync</h1>
+
+  <div id="status" class="status disconnected">
+    <div class="status-dot"></div>
+    <div class="status-text">
+      <div>Checking status...</div>
+      <div class="status-time" id="status-time"></div>
+    </div>
+  </div>
+
+  <a href="https://portal.trackmangolf.com/player/activities" target="_blank" class="btn btn-primary" id="login-btn">
+    Open Trackman Portal
+  </a>
+
+  <button class="btn btn-secondary" id="clear-btn" style="display: none;">
+    Clear Token
+  </button>
+
+  <div class="extension-id">
+    <div class="extension-id-label">Extension ID (for webapp config):</div>
+    <div id="ext-id"></div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

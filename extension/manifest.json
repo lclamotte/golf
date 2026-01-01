@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "Trackman Data Sync",
+  "version": "1.0.0",
+  "description": "Captures your Trackman authentication token for use with golf data visualization tools",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "*://portal.trackmangolf.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://portal.trackmangolf.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["injected.js"],
+      "matches": ["*://portal.trackmangolf.com/*"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "externally_connectable": {
+    "matches": [
+      "http://localhost:5173/*",
+      "http://localhost:3000/*",
+      "https://*.vercel.app/*"
+    ]
+  }
+}
